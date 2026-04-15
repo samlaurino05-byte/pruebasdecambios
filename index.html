@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UCA · Distribución de aulas</title>
+<style>
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#000;
+    color:#fff;
+    overflow:hidden;
+    cursor:auto;
+  }
+  .screen{
+    width:100vw;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    background:linear-gradient(180deg,#0a2448 0%, #0d2f5f 35%, #102846 100%);
+  }
+  .header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:20px 24px 14px;
+    border-bottom:1px solid rgba(255,255,255,.12);
+  }
+  .header-left{
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+  .logo{
+    width:72px;
+    height:72px;
+    object-fit:contain;
+    display:block;
+    filter: brightness(0) invert(1);
+  }
+  .title{
+    font-size:31px;
+    font-weight:800;
+    line-height:1.05;
+    letter-spacing:.2px;
+  }
+  .sub{
+    color:#d7e2f0;
+    font-size:16px;
+    margin-top:5px;
+  }
+  .clock{
+    text-align:right;
+  }
+  .clock-time{
+    font-size:23px;
+    font-weight:800;
+  }
+  .clock-sub{
+    color:#b6c4d7;
+    font-size:13px;
+    margin-top:4px;
+  }
+  .legend{
+    display:flex;
+    gap:10px;
+    padding:14px 24px 0;
+    flex-wrap:wrap;
+  }
+  .pill{
+    padding:9px 15px;
+    border-radius:20px;
+    font-size:14px;
+    font-weight:800;
+    border:none;
+    transition:transform .18s ease, opacity .18s ease, box-shadow .18s ease, filter .18s ease;
+  }
+  .pill.filterable{
+    cursor:pointer !important;
+  }
+  .pill.filterable:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.04);
+  }
+  .pill.filterable.active{
+    box-shadow:0 0 0 2px rgba(255,255,255,.9), 0 0 0 5px rgba(255,255,255,.18);
+  }
+  .pill.all-pill{
+    background:rgba(255,255,255,.12);
+    color:#fff;
+  }
+  .eco{background:#f97316;color:#fff}
+  .der{background:#7c3aed;color:#fff}
+  .sal{background:#3b82f6;color:#fff}
+  .qui{background:#facc15;color:#111}
+  .content{
+    flex:1;
+    padding:18px 24px;
+    min-height:0;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0,1fr));
+    gap:20px;
+    align-items:start;
+  }
+  .card{
+    background:#f6f7fb;
+    color:#111;
+    border-radius:22px;
+    padding:18px;
+    min-height:252px;
+    height:252px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    box-shadow:0 14px 34px rgba(0,0,0,.26);
+    border:1px solid rgba(0,0,0,.04);
+    animation:fadeInUp .45s ease both;
+  }
+  @keyframes fadeInUp{
+    from{opacity:0;transform:translateY(10px) scale(.99);}
+    to{opacity:1;transform:translateY(0) scale(1);}
+  }
+  .top{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:flex-start;
+  }
+  .fac{
+    padding:9px 14px;
+    border-radius:20px;
+    font-size:14px;
+    color:#fff;
+    font-weight:800;
+    line-height:1.1;
+    max-width:160px;
+    text-align:center;
+  }
+  .status{
+    color:#fff;
+    padding:9px 14px;
+    border-radius:20px;
+    font-size:14px;
+    font-weight:800;
+    white-space:nowrap;
+  }
+  .status.live{background:#10b981}
+  .status.soon{background:#9ca3af}
+  .status.alert-badge{background:#b91c1c}
+  .status.change-badge{background:#b91c1c}
+
+  .card.eco .fac{background:#f97316}
+  .card.der .fac{background:#7c3aed}
+  .card.sal .fac{background:#3b82f6}
+  .card.qui .fac{background:#facc15;color:#111}
+
+  .card.eco h2{color:#f97316}
+  .card.der h2{color:#7c3aed}
+  .card.sal h2{color:#3b82f6}
+  .card.qui h2{color:#b98900}
+
+  .card.alert,
+  .card.change{
+    background:#dc2626 !important;
+    color:#fff !important;
+    border:1px solid rgba(255,255,255,.10);
+  }
+  .card.alert h2, .card.alert .alert-message, .card.alert .info,
+  .card.change h2, .card.change .alert-message, .card.change .info{
+    color:#fff !important;
+  }
+  .card.alert .icon-wrap,
+  .card.change .icon-wrap{color:#fff !important;}
+
+  .card.alert.eco .fac, .card.change.eco .fac{background:#f97316 !important;color:#fff !important;}
+  .card.alert.der .fac, .card.change.der .fac{background:#7c3aed !important;color:#fff !important;}
+  .card.alert.sal .fac, .card.change.sal .fac{background:#3b82f6 !important;color:#fff !important;}
+  .card.alert.qui .fac, .card.change.qui .fac{background:#facc15 !important;color:#111 !important;}
+
+  h2{
+    font-size:24px;
+    line-height:1.12;
+    margin:8px 0 0 0;
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    font-weight:800;
+  }
+  .alert-message{
+    margin-top:10px;
+    font-size:15px;
+    font-weight:800;
+    line-height:1.25;
+    opacity:.98;
+  }
+  .info{
+    font-size:17px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .info-line{
+    display:flex;
+    align-items:center;
+    gap:11px;
+  }
+  .icon-wrap{
+    width:24px;
+    height:24px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    flex:0 0 22px;
+  }
+  .icon-svg{
+    width:22px;
+    height:22px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:1.9;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .card.eco .icon-wrap{color:#f97316}
+  .card.der .icon-wrap{color:#7c3aed}
+  .card.sal .icon-wrap{color:#3b82f6}
+  .card.qui .icon-wrap{color:#b98900}
+
+  .footer{
+    display:flex;
+    justify-content:space-between;
+    padding:14px 24px;
+    color:#d7e2f0;
+    border-top:1px solid rgba(255,255,255,.12);
+    font-size:15px;
+  }
+  .empty{
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .empty-box{
+    border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.06);
+    border-radius:28px;
+    padding:42px;
+    text-align:center;
+    width:min(980px,100%);
+  }
+  .empty-box h2{font-size:36px;color:#fff}
+  .empty-box p{color:#d4dbe5;font-size:18px;margin-top:12px}
+
+  .header{
+    padding:clamp(10px, 1.2vw, 20px) clamp(12px, 1.6vw, 24px) clamp(8px, .9vw, 14px);
+    gap:clamp(10px, 1.2vw, 16px);
+  }
+  .header-left{
+    gap:clamp(10px, 1.2vw, 16px);
+    min-width:0;
+  }
+  .logo{
+    width:clamp(42px, 4vw, 72px);
+    height:clamp(42px, 4vw, 72px);
+    flex:0 0 auto;
+  }
+  .title{font-size:clamp(20px, 2vw, 31px);}
+  .sub{font-size:clamp(11px, .95vw, 16px); margin-top:3px;}
+  .clock-time{font-size:clamp(15px, 1.4vw, 23px);}
+  .clock-sub{font-size:clamp(10px, .75vw, 13px); margin-top:2px;}
+  .legend{
+    gap:clamp(6px, .8vw, 10px);
+    padding:clamp(8px, .9vw, 14px) clamp(12px, 1.6vw, 24px) 0;
+  }
+  .pill{padding:clamp(6px, .7vw, 9px) clamp(10px, .95vw, 15px); font-size:clamp(10px, .85vw, 14px);}
+  .content{flex:1; padding:clamp(10px, 1vw, 18px) clamp(12px, 1.6vw, 24px); min-height:0;}
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0,1fr));
+    grid-template-rows:repeat(2, minmax(0,1fr));
+    gap:clamp(10px, 1.1vw, 20px);
+    align-items:stretch;
+    align-content:stretch;
+    height:100%;
+  }
+  .card{
+    border-radius:clamp(14px, 1.3vw, 22px);
+    padding:clamp(10px, .9vw, 18px);
+    min-height:0;
+    height:100%;
+    overflow:hidden;
+  }
+  .top{gap:clamp(6px, .7vw, 10px);}
+  .fac{padding:clamp(6px, .6vw, 9px) clamp(9px, .85vw, 14px); font-size:clamp(10px, .85vw, 14px); max-width:min(55%, 180px);}
+  .status{padding:clamp(6px, .6vw, 9px) clamp(9px, .85vw, 14px); font-size:clamp(10px, .85vw, 14px);}
+  h2{font-size:clamp(16px, 1.35vw, 24px); line-height:1.1; margin:clamp(8px, .8vw, 14px) 0 0 0;}
+  .alert-message{margin-top:clamp(6px, .7vw, 10px); font-size:clamp(11px, .9vw, 15px); line-height:1.18;}
+  .info{font-size:clamp(11px, .98vw, 17px); gap:clamp(5px, .65vw, 10px);}
+  .info-line{gap:clamp(6px, .65vw, 11px);}
+  .icon-wrap{width:clamp(15px, 1.2vw, 24px); height:clamp(15px, 1.2vw, 24px); flex:0 0 clamp(15px, 1.2vw, 24px);}
+  .icon-svg{width:clamp(14px, 1.1vw, 22px); height:clamp(14px, 1.1vw, 22px);}
+  .footer{padding:clamp(8px, .85vw, 14px) clamp(12px, 1.6vw, 24px); font-size:clamp(10px, .85vw, 15px);}
+  .empty-box{padding:clamp(22px, 2.8vw, 42px);}
+  .empty-box h2{font-size:clamp(22px, 2.2vw, 36px);}
+  .empty-box p{font-size:clamp(13px, 1.1vw, 18px);}
+
+  @media (max-height: 820px){
+    .header{padding:8px 12px 6px;}
+    .logo{width:40px;height:40px;}
+    .title{font-size:22px;}
+    .sub{font-size:11px;}
+    .clock-time{font-size:16px;}
+    .clock-sub{font-size:10px;}
+    .legend{padding:6px 12px 0;gap:5px;}
+    .pill{padding:5px 8px;font-size:10px;}
+    .content{padding:8px 12px;}
+    .grid{gap:8px;}
+    .card{padding:10px;}
+    h2{font-size:16px;-webkit-line-clamp:2;}
+    .alert-message{font-size:11px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+    .info{font-size:11px;gap:4px;}
+    .footer{padding:6px 12px;font-size:10px;}
+  }
+
+  @media (orientation: portrait){
+    body{overflow:auto; cursor:auto;}
+    .screen{min-height:100vh; height:auto;}
+    .header{flex-direction:column; align-items:flex-start;}
+    .clock{text-align:left;}
+    .grid{
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      grid-template-rows:repeat(4, minmax(0,1fr));
+      min-height:calc(100vh - 170px);
+      height:auto;
+    }
+    .card{height:100%; min-height:0;}
+    .footer{flex-direction:column; align-items:flex-start; gap:4px;}
+  }
+
+  @media (orientation: portrait) and (max-width: 700px){
+    .header{padding:8px 12px 6px;}
+    .logo{width:38px;height:38px;}
+    .title{font-size:20px;}
+    .sub{font-size:10px;}
+    .legend{padding:6px 12px 0;}
+    .pill{padding:5px 8px;font-size:10px;}
+    .content{padding:8px 12px;}
+    .grid{gap:8px;}
+    .card{padding:9px;}
+    .top{flex-direction:column; align-items:flex-start;}
+    .fac,.status{max-width:100%;}
+    h2{font-size:15px;-webkit-line-clamp:2;}
+    .alert-message{font-size:10px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+    .info{font-size:10px;gap:4px;}
+    .icon-wrap{width:14px;height:14px;flex:0 0 14px;}
+    .icon-svg{width:13px;height:13px;}
+    .footer{padding:6px 12px;font-size:10px;}
+  }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="header">
+    <div class="header-left">
+      <img class="logo" src="./logo.png" alt="UCA">
+      <div>
+        <div class="title">UCA · Distribución de aulas</div>
+        <div class="sub" id="subtitle">Materias próximas y en curso</div>
+      </div>
+    </div>
+    <div class="clock">
+      <div class="clock-time" id="clock">--:--</div>
+      <div class="clock-sub">Actualización en vivo</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <button class="pill all-pill filterable active" data-faculty="all">Todas</button>
+    <button class="pill eco filterable" data-faculty="economicas">Económicas</button>
+    <button class="pill der filterable" data-faculty="derecho">Derecho y Cs Sociales</button>
+    <button class="pill sal filterable" data-faculty="salud">Salud</button>
+    <button class="pill qui filterable" data-faculty="quimica">Química e Ingeniería</button>
+  </div>
+
+  <div class="content" id="content"></div>
+
+  <div class="footer">
+    <div>Sistema académico</div>
+    <div id="footerCount">0 materias en este momento</div>
+  </div>
+</div>
+
+<script>
+const rotationMs = 8000;
+const TEST_MODE = false;
+const TEST_DAY = "viernes";
+const TEST_TIME = 600;
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTNK3qYBQUNE0skOye3iYuXE1bSxw2cfmBUjMF1ATBwcJjOP7IwuIo3kPu36KV0Gm-8N61cN9xismYB/pub?gid=1014740003&single=true&output=csv";
+const CACHE_KEY = "uca_aulas_cache_v2";
+const FETCH_TIMEOUT_MS = 8000;
+
+const facultyOrder = ["economicas","derecho","salud","quimica"];
+const facultyLabel = {
+  "economicas":"Económicas",
+  "derecho":"Derecho y Cs Sociales",
+  "salud":"Salud",
+  "quimica":"Química e Ingeniería"
+};
+const facultyClass = {
+  "economicas":"eco",
+  "derecho":"der",
+  "salud":"sal",
+  "quimica":"qui"
+};
+
+const content = document.getElementById('content');
+const footerCount = document.getElementById('footerCount');
+const subtitle = document.getElementById('subtitle');
+const clockEl = document.getElementById('clock');
+
+let data = [];
+let page = 0;
+let pages = [];
+let selectedFaculty = "all";
+
+function parseCSV(text){
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+  for(let i = 0; i < text.length; i++){
+    const char = text[i];
+    const next = text[i + 1];
+    if(char === '"'){
+      if(inQuotes && next === '"'){ cell += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if(char === ',' && !inQuotes){
+      row.push(cell); cell = "";
+    } else if((char === '\n' || char === '\r') && !inQuotes){
+      if(char === '\r' && next === '\n') i++;
+      if(cell.length || row.length){
+        row.push(cell); rows.push(row); row = []; cell = "";
+      }
+    } else {
+      cell += char;
+    }
+  }
+  if(cell.length || row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
+
+function normalizeText(value){
+  return (value || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function parseRange(range){
+  const [start, end] = range.split(' a ');
+  const [sh, sm] = start.replace('.', ':').split(':').map(Number);
+  const [eh, em] = end.replace('.', ':').split(':').map(Number);
+  return { start: sh*60 + sm, end: eh*60 + em };
+}
+
+function getNowContext(){
+  if(TEST_MODE){
+    const hours = Math.floor(TEST_TIME/60).toString().padStart(2,'0');
+    const mins = (TEST_TIME%60).toString().padStart(2,'0');
+    return { day: TEST_DAY, normalizedDay: normalizeText(TEST_DAY), minutes: TEST_TIME, label: `${TEST_DAY}, ${hours}:${mins}` };
+  }
+  const now = new Date();
+  const day = now.toLocaleDateString('es-AR', { weekday:'long' }).toLowerCase();
+  const minutes = now.getHours()*60 + now.getMinutes();
+  const label = now.toLocaleString('es-AR', { weekday:'long', hour:'2-digit', minute:'2-digit' });
+  return { day, normalizedDay: normalizeText(day), minutes, label };
+}
+
+function chunk(arr,size){
+  const out = [];
+  for(let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+function saveCache(rows){
+  try{
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      ts: Date.now(),
+      rows
+    }));
+  } catch(e){}
+}
+
+function loadCache(){
+  try{
+    const raw = localStorage.getItem(CACHE_KEY);
+    if(!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed.rows) ? parsed.rows : [];
+  } catch(e){
+    return [];
+  }
+}
+
+function renderLoading(){
+  content.innerHTML = `
+    <div class="empty">
+      <div class="empty-box">
+        <h2>Cargando materias...</h2>
+        <p>Esperá un segundo...</p>
+      </div>
+    </div>
+  `;
+}
+
+async function loadData(){
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  try{
+    const res = await fetch(SHEET_URL + (SHEET_URL.includes("?") ? "&" : "?") + "_t=" + Date.now(), {
+      cache: "no-store",
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if(!res.ok){
+      throw new Error("No se pudo cargar la planilla");
+    }
+
+    const text = await res.text();
+    const rows = parseCSV(text);
+    if(rows.length <= 1) return [];
+
+    const headers = rows[0].map(h => normalizeText(h));
+    const idx = {
+      id: headers.indexOf("id"),
+      dia: headers.indexOf("dia"),
+      facultad: headers.indexOf("facultad"),
+      materia: headers.indexOf("materia"),
+      comision: headers.indexOf("comision"),
+      horario_inicio: headers.indexOf("horario_inicio"),
+      horario_fin: headers.indexOf("horario_fin"),
+      aula: headers.indexOf("aula"),
+      edificio: headers.indexOf("edificio"),
+      estado: headers.indexOf("estado"),
+      mensaje: headers.indexOf("mensaje"),
+      visible: headers.indexOf("visible")
+    };
+
+    return rows.slice(1)
+      .filter(cols => cols.some(c => c && c.trim() !== ""))
+      .map(cols => {
+        const diaRaw = cols[idx.dia] || "";
+        const facRaw = cols[idx.facultad] || "";
+        const visibleRaw = (cols[idx.visible] || "").trim().toLowerCase();
+        return {
+          id: cols[idx.id] || "",
+          dia: diaRaw.trim(),
+          diaNorm: normalizeText(diaRaw),
+          facultad: normalizeText(facRaw),
+          materia: (cols[idx.materia] || "").trim(),
+          comision: (cols[idx.comision] || "").trim(),
+          horario_inicio: (cols[idx.horario_inicio] || "").trim(),
+          horario_fin: (cols[idx.horario_fin] || "").trim(),
+          horario: `${(cols[idx.horario_inicio] || "").trim()} a ${(cols[idx.horario_fin] || "").trim()}`,
+          aula: `${(cols[idx.aula] || "").trim()} · ${(cols[idx.edificio] || "").trim()}`.replace(/^ · | · $/g, ""),
+          estado: ((cols[idx.estado] || "normal").trim().toLowerCase() || "normal"),
+          mensaje: (cols[idx.mensaje] || "").trim(),
+          visible: visibleRaw === "si" || visibleRaw === "sí" || visibleRaw === "true" || visibleRaw === "1"
+        };
+      });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function setActiveFilterButton(){
+  document.querySelectorAll('.filterable').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.faculty === selectedFaculty);
+  });
+}
+
+function getVisible(){
+  const ctx = getNowContext();
+  const filtroTexto = selectedFaculty === "all" ? "Todas las facultades" : (facultyLabel[selectedFaculty] || selectedFaculty);
+  subtitle.textContent = `${ctx.day.charAt(0).toUpperCase()+ctx.day.slice(1)} · ${filtroTexto}`;
+  clockEl.textContent = ctx.label;
+
+  return data
+    .filter(item => item.visible)
+    .filter(item => item.diaNorm === ctx.normalizedDay)
+    .map(item => {
+      const slot = parseRange(item.horario);
+      const live = ctx.minutes >= slot.start && ctx.minutes < slot.end;
+      const soon = ctx.minutes >= slot.start - 15 && ctx.minutes < slot.start;
+      return { ...item, live, soon, slotStart:slot.start };
+    })
+    .filter(item => item.live || item.soon)
+    .filter(item => selectedFaculty === "all" ? true : item.facultad === selectedFaculty)
+    .sort((a,b) => {
+      const order = facultyOrder.indexOf(a.facultad) - facultyOrder.indexOf(b.facultad);
+      if(order !== 0) return order;
+      return a.slotStart - b.slotStart;
+    });
+}
+
+function createCard(item){
+  const locationIcon = `<span class="icon-wrap"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6-4.35-6-10a6 6 0 1 1 12 0c0 5.65-6 10-6 10Z"></path><circle cx="12" cy="11" r="2.5"></circle></svg></span>`;
+  const groupIcon = `<span class="icon-wrap"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1"></path><circle cx="9.5" cy="8" r="3"></circle><path d="M20 21v-1a4 4 0 0 0-3-3.87"></path><path d="M14 5.13a3 3 0 0 1 0 5.74"></path></svg></span>`;
+  const timeIcon = `<span class="icon-wrap"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span>`;
+  const visualClass = facultyClass[item.facultad] || '';
+  const isSuspended = item.estado === 'suspendida';
+  const isChange = item.estado === 'cambio' || item.estado === 'cambio_aula' || item.estado === 'cambio_horario';
+
+  let cardExtraClass = '';
+  let badgeClass = item.live ? 'live' : 'soon';
+  let badgeText = item.live ? 'EN CURSO' : 'PRÓXIMAMENTE';
+
+  if(isSuspended){
+    cardExtraClass = 'alert';
+    badgeClass = 'alert-badge';
+    badgeText = 'SUSPENDIDA';
+  } else if(isChange){
+    cardExtraClass = 'change';
+    badgeClass = 'change-badge';
+    badgeText = item.estado === 'cambio_horario' ? 'CAMBIO DE HORARIO' : 'CAMBIO DE AULA';
+  }
+
+  const note = (isSuspended || isChange) && item.mensaje ? `<div class="alert-message">${item.mensaje}</div>` : '';
+
+  return `
+    <div class="card ${visualClass} ${cardExtraClass}">
+      <div>
+        <div class="top">
+          <div class="fac">${facultyLabel[item.facultad] || item.facultad}</div>
+          <div class="status ${badgeClass}">${badgeText}</div>
+        </div>
+        <h2>${item.materia}</h2>
+        ${note}
+      </div>
+      <div class="info">
+        <div class="info-line">${locationIcon}<span>${item.aula}</span></div>
+        <div class="info-line">${groupIcon}<span>${item.comision}</span></div>
+        <div class="info-line">${timeIcon}<span>${item.horario}</span></div>
+      </div>
+    </div>`;
+}
+
+function render(){
+  const visible = getVisible();
+  pages = chunk(visible, 8);
+  if(page >= pages.length) page = 0;
+
+  if(!visible.length){
+    const mensajeFacultad = selectedFaculty === "all"
+      ? "En este momento no hay materias en curso"
+      : `En este momento no hay materias en curso de ${facultyLabel[selectedFaculty] || selectedFaculty}`;
+    content.innerHTML = `<div class="empty"><div class="empty-box"><h2>${mensajeFacultad}</h2><p>La pantalla muestra materias 15 minutos antes de su inicio y durante su cursado real.</p></div></div>`;
+  } else {
+    const current = pages[page] || [];
+    content.innerHTML = `<div class="grid">${current.map(createCard).join('')}</div>`;
+  }
+  footerCount.textContent = `${visible.length} materias en este momento`;
+}
+
+function bindFacultyFilters(){
+  document.querySelectorAll('.filterable').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedFaculty = btn.dataset.faculty || "all";
+      page = 0;
+      setActiveFilterButton();
+      render();
+    });
+  });
+}
+
+async function refreshDataAndRender(){
+  try{
+    const newData = await loadData();
+    data = newData;
+    saveCache(newData);
+    render();
+  } catch(error){
+    console.error(error);
+
+    if(data.length){
+      render();
+      return;
+    }
+
+    const cached = loadCache();
+    if(cached.length){
+      data = cached;
+      render();
+      return;
+    }
+
+    content.innerHTML = `<div class="empty"><div class="empty-box"><h2>Error al cargar la planilla</h2><p>Revisá que la hoja esté publicada como CSV y que los encabezados coincidan con la plantilla.</p></div></div>`;
+  }
+}
+
+function boot(){
+  bindFacultyFilters();
+  setActiveFilterButton();
+
+  const cached = loadCache();
+  if(cached.length){
+    data = cached;
+    render();
+  } else {
+    renderLoading();
+  }
+
+  refreshDataAndRender();
+  setInterval(refreshDataAndRender, 60000);
+  setInterval(() => {
+    if(pages.length > 1){
+      page = (page + 1) % pages.length;
+      render();
+    }
+  }, rotationMs);
+}
+
+boot();
+
+document.addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+});
+</script>
+</body>
+</html>
