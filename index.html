@@ -670,13 +670,13 @@ function adaptCardTypography(){
       parseFloat(cardStyles.paddingBottom);
     const availableMainHeight = cardInnerHeight - info.offsetHeight;
     let low = 16;
-    let high = 44;
-    let best = 30;
-    let bestInfo = 17;
+    let high = 36;
+    let best = 26;
+    let bestInfo = 15;
 
     while(low <= high){
       const mid = Math.floor((low + high) / 2);
-      const infoSize = Math.max(11, Math.min(20, Math.round(mid * 0.57)));
+      const infoSize = Math.max(11, Math.min(17, Math.round(mid * 0.5)));
       title.style.fontSize = `${mid}px`;
       info.style.fontSize = `${infoSize}px`;
 
