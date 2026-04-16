@@ -634,7 +634,7 @@ function createCard(item){
 
   return `
     <div class="card ${visualClass} ${cardExtraClass}">
-      <div>
+      <div class="card-main">
         <div class="top">
           <div class="fac">${facultyLabel[item.facultad] || item.facultad}</div>
           <div class="status ${badgeClass}">${badgeText}</div>
@@ -648,6 +648,50 @@ function createCard(item){
         <div class="info-line">${timeIcon}<span>${item.horario}</span></div>
       </div>
     </div>`;
+}
+
+function adaptCardTypography(){
+  const largeScreenLayout = window.matchMedia('(orientation: landscape) and (min-width: 1000px)').matches;
+
+  document.querySelectorAll('.card').forEach(card => {
+    const title = card.querySelector('h2');
+    const main = card.querySelector('.card-main');
+    const info = card.querySelector('.info');
+    if(!title || !main || !info) return;
+
+    title.style.removeProperty('font-size');
+    info.style.removeProperty('font-size');
+    if(!largeScreenLayout) return;
+
+    const cardStyles = getComputedStyle(card);
+    const cardInnerHeight =
+      card.clientHeight -
+      parseFloat(cardStyles.paddingTop) -
+      parseFloat(cardStyles.paddingBottom);
+    const availableMainHeight = cardInnerHeight - info.offsetHeight;
+    let low = 16;
+    let high = 44;
+    let best = 30;
+    let bestInfo = 17;
+
+    while(low <= high){
+      const mid = Math.floor((low + high) / 2);
+      const infoSize = Math.max(11, Math.min(20, Math.round(mid * 0.57)));
+      title.style.fontSize = `${mid}px`;
+      info.style.fontSize = `${infoSize}px`;
+
+      if(main.scrollHeight <= availableMainHeight){
+        best = mid;
+        bestInfo = infoSize;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    title.style.fontSize = `${best}px`;
+    info.style.fontSize = `${bestInfo}px`;
+  });
 }
 
 function render(){
@@ -664,6 +708,7 @@ function render(){
     const current = pages[page] || [];
     content.innerHTML = `<div class="grid">${current.map(createCard).join('')}</div>`;
   }
+  requestAnimationFrame(adaptCardTypography);
   footerCount.textContent = `${visible.length} materias en este momento`;
 }
 
@@ -726,6 +771,8 @@ function boot(){
 }
 
 boot();
+
+window.addEventListener('resize', adaptCardTypography);
 
 document.addEventListener('click', () => {
   if (!document.fullscreenElement) {
